@@ -13,6 +13,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPTS_DIR = path.resolve(__dirname, '../scripts');
 const SUCCESS_PREFIX = 'SUCCESS:';
 const ERROR_PREFIX = 'ERROR:';
+// Default path to cscript.exe, can be overridden with CSCRIPT_PATH environment variable
+const CSCRIPT_PATH = process.env.CSCRIPT_PATH || 'C:\\Windows\\System32\\cscript.exe';
 
 /**
  * Executes a VBScript file with the given parameters
@@ -24,7 +26,8 @@ export async function executeScript(scriptName, params = {}) {
   return new Promise((resolve, reject) => {
     // Build the command
     const scriptPath = path.join(SCRIPTS_DIR, `${scriptName}.vbs`);
-    let command = `cscript //NoLogo "${scriptPath}"`;
+    // Use absolute path to cscript.exe to avoid PATH resolution issues
+    let command = `"${CSCRIPT_PATH}" //NoLogo "${scriptPath}"`;
     
     // Add parameters
     for (const [key, value] of Object.entries(params)) {
