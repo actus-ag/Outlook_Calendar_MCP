@@ -20,9 +20,10 @@ const CSCRIPT_PATH = process.env.CSCRIPT_PATH || 'C:\\Windows\\System32\\cscript
  * Executes a VBScript file with the given parameters
  * @param {string} scriptName - Name of the script file (without .vbs extension)
  * @param {Object} params - Parameters to pass to the script
+ * @param {string} locale - Language/locale code (e.g., "en", "es") - defaults to "en"
  * @returns {Promise<Object>} - Promise that resolves with the script output
  */
-export async function executeScript(scriptName, params = {}) {
+export async function executeScript(scriptName, params = {}, locale = "en") {
   return new Promise((resolve, reject) => {
     // Build the command
     const scriptPath = path.join(SCRIPTS_DIR, `${scriptName}.vbs`);
@@ -36,6 +37,11 @@ export async function executeScript(scriptName, params = {}) {
         const escapedValue = value.toString().replace(/"/g, '\\"');
         command += ` /${key}:"${escapedValue}"`;
       }
+    }
+    
+    // Add locale parameter if specified
+    if (locale && locale !== '') {
+      command += ` /locale:"${locale}"`;
     }
     
     // Execute the command
@@ -70,35 +76,38 @@ export async function executeScript(scriptName, params = {}) {
 
 /**
  * Lists calendar events within a specified date range
- * @param {string} startDate - Start date in MM/DD/YYYY format
- * @param {string} endDate - End date in MM/DD/YYYY format (optional)
+ * @param {string} startDate - Start date in locale appropriate format (MM/DD/YYYY for en, DD/MM/YYYY for es)
+ * @param {string} endDate - End date in locale appropriate format (optional)
  * @param {string} calendar - Calendar name (optional)
+ * @param {string} locale - Language/locale code (e.g., "en", "es") - defaults to "en"
  * @returns {Promise<Array>} - Promise that resolves with an array of events
  */
-export async function listEvents(startDate, endDate, calendar) {
-  return executeScript('listEvents', { startDate, endDate, calendar });
+export async function listEvents(startDate, endDate, calendar, locale = "en") {
+  return executeScript('listEvents', { startDate, endDate, calendar }, locale);
 }
 
 /**
  * Creates a new calendar event
  * @param {Object} eventDetails - Event details
+ * @param {string} locale - Language/locale code (e.g., "en", "es") - defaults to "en"
  * @returns {Promise<Object>} - Promise that resolves with the created event ID
  */
-export async function createEvent(eventDetails) {
-  return executeScript('createEvent', eventDetails);
+export async function createEvent(eventDetails, locale = "en") {
+  return executeScript('createEvent', eventDetails, locale);
 }
 
 /**
  * Finds free time slots in the calendar
- * @param {string} startDate - Start date in MM/DD/YYYY format
- * @param {string} endDate - End date in MM/DD/YYYY format (optional)
+ * @param {string} startDate - Start date in locale appropriate format (MM/DD/YYYY for en, DD/MM/YYYY for es)
+ * @param {string} endDate - End date in locale appropriate format (optional)
  * @param {number} duration - Duration in minutes (optional)
  * @param {number} workDayStart - Work day start hour (0-23) (optional)
  * @param {number} workDayEnd - Work day end hour (0-23) (optional)
  * @param {string} calendar - Calendar name (optional)
+ * @param {string} locale - Language/locale code (e.g., "en", "es") - defaults to "en"
  * @returns {Promise<Array>} - Promise that resolves with an array of free time slots
  */
-export async function findFreeSlots(startDate, endDate, duration, workDayStart, workDayEnd, calendar) {
+export async function findFreeSlots(startDate, endDate, duration, workDayStart, workDayEnd, calendar, locale = "en") {
   return executeScript('findFreeSlots', {
     startDate,
     endDate,
@@ -106,43 +115,46 @@ export async function findFreeSlots(startDate, endDate, duration, workDayStart, 
     workDayStart,
     workDayEnd,
     calendar
-  });
+  }, locale);
 }
 
 /**
  * Gets the response status of meeting attendees
  * @param {string} eventId - Event ID
  * @param {string} calendar - Calendar name (optional)
+ * @param {string} locale - Language/locale code (e.g., "en", "es") - defaults to "en"
  * @returns {Promise<Object>} - Promise that resolves with meeting details and attendee status
  */
-export async function getAttendeeStatus(eventId, calendar) {
-  return executeScript('getAttendeeStatus', { eventId, calendar });
+export async function getAttendeeStatus(eventId, calendar, locale = "en") {
+  return executeScript('getAttendeeStatus', { eventId, calendar }, locale);
 }
 
 /**
  * Deletes a calendar event by its ID
  * @param {string} eventId - Event ID
  * @param {string} calendar - Calendar name (optional)
+ * @param {string} locale - Language/locale code (e.g., "en", "es") - defaults to "en"
  * @returns {Promise<Object>} - Promise that resolves with the deletion result
  */
-export async function deleteEvent(eventId, calendar) {
-  return executeScript('deleteEvent', { eventId, calendar });
+export async function deleteEvent(eventId, calendar, locale = "en") {
+  return executeScript('deleteEvent', { eventId, calendar }, locale);
 }
 
 /**
  * Updates an existing calendar event
  * @param {string} eventId - Event ID to update
  * @param {string} subject - New subject (optional)
- * @param {string} startDate - New start date in MM/DD/YYYY format (optional)
+ * @param {string} startDate - New start date in locale appropriate format (MM/DD/YYYY for en, DD/MM/YYYY for es) (optional)
  * @param {string} startTime - New start time in HH:MM AM/PM format (optional)
- * @param {string} endDate - New end date in MM/DD/YYYY format (optional)
+ * @param {string} endDate - New end date in locale appropriate format (MM/DD/YYYY for en, DD/MM/YYYY for es) (optional)
  * @param {string} endTime - New end time in HH:MM AM/PM format (optional)
  * @param {string} location - New location (optional)
  * @param {string} body - New body/description (optional)
  * @param {string} calendar - Calendar name (optional)
+ * @param {string} locale - Language/locale code (e.g., "en", "es") - defaults to "en"
  * @returns {Promise<Object>} - Promise that resolves with the update result
  */
-export async function updateEvent(eventId, subject, startDate, startTime, endDate, endTime, location, body, calendar) {
+export async function updateEvent(eventId, subject, startDate, startTime, endDate, endTime, location, body, calendar, locale = "en") {
   return executeScript('updateEvent', {
     eventId,
     subject,
@@ -153,13 +165,14 @@ export async function updateEvent(eventId, subject, startDate, startTime, endDat
     location,
     body,
     calendar
-  });
+  }, locale);
 }
 
 /**
  * Lists available calendars
+ * @param {string} locale - Language/locale code (e.g., "en", "es") - defaults to "en"
  * @returns {Promise<Array>} - Promise that resolves with an array of calendars
  */
-export async function getCalendars() {
-  return executeScript('getCalendars');
+export async function getCalendars(locale = "en") {
+  return executeScript('getCalendars', {}, locale);
 }

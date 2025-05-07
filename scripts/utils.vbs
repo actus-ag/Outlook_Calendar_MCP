@@ -15,19 +15,35 @@ Const olResponseTentative = 2
 Const olResponseNotResponded = 5
 
 ' Error handling constants
-Const ERROR_PREFIX = "ERROR:"
-Const SUCCESS_PREFIX = "SUCCESS:"
+Const ERROR_PREFIX = "ERROR:"  ' Keep these values for backward compatibility
+Const SUCCESS_PREFIX = "SUCCESS:"  ' and for parsing in scriptRunner.js
+
+' Check if localization functions are available
+Function IsLocalizationActive()
+    On Error Resume Next
+    Dim result
+    result = (GetRef("L") Is Nothing) = False
+    IsLocalizationActive = (Err.Number = 0) And result
+    Err.Clear
+    On Error GoTo 0
+End Function
 
 ' ===== Outlook Application Management =====
 
 ' Creates and returns an Outlook Application object
 Function CreateOutlookApplication()
     On Error Resume Next
-    Dim outlookApp
+    Dim outlookApp, errorMsg
     Set outlookApp = CreateObject("Outlook.Application")
     
     If Err.Number <> 0 Then
-        WScript.Echo ERROR_PREFIX & "Failed to create Outlook Application: " & Err.Description
+        If IsLocalizationActive() Then
+            errorMsg = L("ERROR_OUTLOOK_APP_FAILED") & Err.Description
+        Else
+            errorMsg = "Failed to create Outlook Application: " & Err.Description
+        End If
+        
+        WScript.Echo ERROR_PREFIX & errorMsg
         WScript.Quit 1
     End If
     
@@ -37,17 +53,29 @@ End Function
 ' Gets the default calendar folder from Outlook
 Function GetDefaultCalendar(outlookApp)
     On Error Resume Next
-    Dim namespace, calendar
+    Dim namespace, calendar, errorMsg
     
     Set namespace = outlookApp.GetNamespace("MAPI")
     If Err.Number <> 0 Then
-        WScript.Echo ERROR_PREFIX & "Failed to get MAPI namespace: " & Err.Description
+        If IsLocalizationActive() Then
+            errorMsg = L("ERROR_MAPI_NAMESPACE_FAILED") & Err.Description
+        Else
+            errorMsg = "Failed to get MAPI namespace: " & Err.Description
+        End If
+        
+        WScript.Echo ERROR_PREFIX & errorMsg
         WScript.Quit 1
     End If
     
     Set calendar = namespace.GetDefaultFolder(olFolderCalendar)
     If Err.Number <> 0 Then
-        WScript.Echo ERROR_PREFIX & "Failed to get default calendar: " & Err.Description
+        If IsLocalizationActive() Then
+            errorMsg = L("ERROR_DEFAULT_CALENDAR_FAILED") & Err.Description
+        Else
+            errorMsg = "Failed to get default calendar: " & Err.Description
+        End If
+        
+        WScript.Echo ERROR_PREFIX & errorMsg
         WScript.Quit 1
     End If
     
@@ -57,11 +85,17 @@ End Function
 ' Gets a specific calendar folder by name
 Function GetCalendarByName(outlookApp, calendarName)
     On Error Resume Next
-    Dim namespace, folders, folder, i
+    Dim namespace, folders, folder, i, errorMsg
     
     Set namespace = outlookApp.GetNamespace("MAPI")
     If Err.Number <> 0 Then
-        WScript.Echo ERROR_PREFIX & "Failed to get MAPI namespace: " & Err.Description
+        If IsLocalizationActive() Then
+            errorMsg = L("ERROR_MAPI_NAMESPACE_FAILED") & Err.Description
+        Else
+            errorMsg = "Failed to get MAPI namespace: " & Err.Description
+        End If
+        
+        WScript.Echo ERROR_PREFIX & errorMsg
         WScript.Quit 1
     End If
     
@@ -82,7 +116,13 @@ Function GetCalendarByName(outlookApp, calendarName)
     Next
     
     ' Calendar not found
-    WScript.Echo ERROR_PREFIX & "Calendar not found: " & calendarName
+    If IsLocalizationActive() Then
+        errorMsg = L("ERROR_CALENDAR_NOT_FOUND") & calendarName
+    Else
+        errorMsg = "Calendar not found: " & calendarName
+    End If
+    
+    WScript.Echo ERROR_PREFIX & errorMsg
     WScript.Quit 1
 End Function
 
@@ -91,7 +131,16 @@ End Function
 ' Converts a date string in MM/DD/YYYY format to a Date object
 Function ParseDate(dateStr)
     On Error Resume Next
+    Dim errorMsg
     
+    ' If localization is active, use the locale-aware function
+    If IsLocalizationActive() Then
+        ' Use default locale (g_currentLocale) from localization system
+        ParseDate = ParseDateByLocale(dateStr, g_currentLocale)
+        Exit Function
+    End If
+    
+    ' Default non-localized implementation
     If IsDate(dateStr) Then
         ParseDate = CDate(dateStr)
     Else
@@ -122,14 +171,25 @@ Function ParseDate(dateStr)
     End If
 End Function
 
-' Formats a Date object to MM/DD/YYYY format
+' Formats a Date object to MM/DD/YYYY format or locale-specific format
 Function FormatDate(dateObj)
-    FormatDate = Month(dateObj) & "/" & Day(dateObj) & "/" & Year(dateObj)
+    ' If localization is active, use the locale-aware function
+    If IsLocalizationActive() Then
+        FormatDate = FormatDateByLocale(dateObj, g_currentLocale)
+    Else
+        ' Default format (MM/DD/YYYY)
+        FormatDate = Month(dateObj) & "/" & Day(dateObj) & "/" & Year(dateObj)
+    End If
 End Function
 
-' Formats a Date object to MM/DD/YYYY HH:MM AM/PM format
+' Formats a Date object to MM/DD/YYYY HH:MM AM/PM format or locale-specific format
 Function FormatDateTime(dateTimeObj)
-    FormatDateTime = FormatDate(dateTimeObj) & " " & FormatTime(dateTimeObj)
+    ' If localization is active, use the locale-aware function
+    If IsLocalizationActive() Then
+        FormatDateTime = FormatDateTimeByLocale(dateTimeObj, g_currentLocale)
+    Else
+        FormatDateTime = FormatDate(dateTimeObj) & " " & FormatTime(dateTimeObj)
+    End If
 End Function
 
 ' Formats a time to HH:MM AM/PM format
@@ -224,15 +284,35 @@ Function AppointmentToJSON(appointment)
     ' Busy status
     Select Case appointment.BusyStatus
         Case olBusy
-            json = json & """busyStatus"":""Busy"","
+            If IsLocalizationActive() Then
+                json = json & """busyStatus"":""" & L("STATUS_BUSY") & ""","
+            Else
+                json = json & """busyStatus"":""Busy"","
+            End If
         Case olTentative
-            json = json & """busyStatus"":""Tentative"","
+            If IsLocalizationActive() Then
+                json = json & """busyStatus"":""" & L("STATUS_TENTATIVE") & ""","
+            Else
+                json = json & """busyStatus"":""Tentative"","
+            End If
         Case olFree
-            json = json & """busyStatus"":""Free"","
+            If IsLocalizationActive() Then
+                json = json & """busyStatus"":""" & L("STATUS_FREE") & ""","
+            Else
+                json = json & """busyStatus"":""Free"","
+            End If
         Case olOutOfOffice
-            json = json & """busyStatus"":""Out of Office"","
+            If IsLocalizationActive() Then
+                json = json & """busyStatus"":""" & L("STATUS_OUT_OF_OFFICE") & ""","
+            Else
+                json = json & """busyStatus"":""Out of Office"","
+            End If
         Case Else
-            json = json & """busyStatus"":""Unknown"","
+            If IsLocalizationActive() Then
+                json = json & """busyStatus"":""" & L("STATUS_UNKNOWN") & ""","
+            Else
+                json = json & """busyStatus"":""Unknown"","
+            End If
     End Select
     
     ' Attendees (if it's a meeting)
@@ -252,15 +332,35 @@ Function AppointmentToJSON(appointment)
             ' Response status
             Select Case recipient.MeetingResponseStatus
                 Case olResponseAccepted
-                    attendeeStatus = "Accepted"
+                    If IsLocalizationActive() Then
+                        attendeeStatus = L("RESPONSE_ACCEPTED")
+                    Else
+                        attendeeStatus = "Accepted"
+                    End If
                 Case olResponseDeclined
-                    attendeeStatus = "Declined"
+                    If IsLocalizationActive() Then
+                        attendeeStatus = L("RESPONSE_DECLINED")
+                    Else
+                        attendeeStatus = "Declined"
+                    End If
                 Case olResponseTentative
-                    attendeeStatus = "Tentative"
+                    If IsLocalizationActive() Then
+                        attendeeStatus = L("RESPONSE_TENTATIVE")
+                    Else
+                        attendeeStatus = "Tentative"
+                    End If
                 Case olResponseNotResponded
-                    attendeeStatus = "Not Responded"
+                    If IsLocalizationActive() Then
+                        attendeeStatus = L("RESPONSE_NOT_RESPONDED")
+                    Else
+                        attendeeStatus = "Not Responded"
+                    End If
                 Case Else
-                    attendeeStatus = "Unknown"
+                    If IsLocalizationActive() Then
+                        attendeeStatus = L("RESPONSE_UNKNOWN")
+                    Else
+                        attendeeStatus = "Unknown"
+                    End If
             End Select
             
             attendees = attendees & """responseStatus"":""" & attendeeStatus & """"
@@ -326,12 +426,18 @@ End Function
 
 ' Checks if a required argument is present
 Sub RequireArgument(name)
-    Dim value
+    Dim value, errorMsg
     
     value = GetArgument(name)
     
     If value = "" Then
-        WScript.Echo ERROR_PREFIX & "Missing required argument: " & name
+        If IsLocalizationActive() Then
+            errorMsg = L("ERROR_MISSING_REQUIRED_ARG") & name
+        Else
+            errorMsg = "Missing required argument: " & name
+        End If
+        
+        WScript.Echo ERROR_PREFIX & errorMsg
         WScript.Quit 1
     End If
 End Sub
@@ -340,10 +446,12 @@ End Sub
 
 ' Outputs a success message with JSON data
 Sub OutputSuccess(jsonData)
+    ' Always use SUCCESS_PREFIX for compatibility with scriptRunner.js
     WScript.Echo SUCCESS_PREFIX & jsonData
 End Sub
 
 ' Outputs an error message
 Sub OutputError(message)
+    ' Always use ERROR_PREFIX for compatibility with scriptRunner.js
     WScript.Echo ERROR_PREFIX & message
 End Sub

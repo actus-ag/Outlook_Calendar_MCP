@@ -7,6 +7,11 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 ExecuteGlobal fso.OpenTextFile(fso.BuildPath(scriptDir, "utils.vbs"), 1).ReadAll
 
+' Include localization system
+Dim localesDir
+localesDir = fso.BuildPath(fso.GetParentFolderName(scriptDir), "locales")
+ExecuteGlobal fso.OpenTextFile(fso.BuildPath(localesDir, "_index.vbs"), 1).ReadAll
+
 ' Main function
 Sub Main()
     ' Get command line arguments
@@ -31,19 +36,19 @@ Sub Main()
     RequireArgument "startTime"
     
     ' Parse start date/time
-    startDateTime = ParseDateTime(startDateStr, startTimeStr)
+    startDateTime = ParseDateTimeLocalized(startDateStr, startTimeStr, g_currentLocale)
     
     ' Parse end date/time (if not provided, default to 30 minutes after start)
     If endDateStr = "" Then endDateStr = startDateStr
     If endTimeStr = "" Then
         endDateTime = DateAdd("n", 30, startDateTime)
     Else
-        endDateTime = ParseDateTime(endDateStr, endTimeStr)
+        endDateTime = ParseDateTimeLocalized(endDateStr, endTimeStr, g_currentLocale)
     End If
     
     ' Ensure end time is not before start time
     If endDateTime <= startDateTime Then
-        OutputError "End time cannot be before or equal to start time"
+        OutputError L("ERROR_END_TIME_BEFORE_START")
         WScript.Quit 1
     End If
     
@@ -62,23 +67,24 @@ Sub Main()
     OutputSuccess "{""eventId"":""" & eventId & """}"
 End Sub
 
-' Parses a date and time string into a DateTime object
-Function ParseDateTime(dateStr, timeStr)
+' Parses a date and time string into a DateTime object with locale awareness
+Function ParseDateTimeLocalized(dateStr, timeStr, locale)
     Dim dateObj, timeObj, dateTimeStr
     
-    ' Parse date
-    dateObj = ParseDate(dateStr)
+    ' Parse date with locale awareness
+    dateObj = ParseDateByLocale(dateStr, locale)
     
-    ' Combine date and time
-    dateTimeStr = FormatDate(dateObj) & " " & timeStr
+    ' Combine date and time (using standard MM/DD/YYYY for parsing regardless of locale)
+    ' This ensures internal date operations work correctly in Windows
+    dateTimeStr = Month(dateObj) & "/" & Day(dateObj) & "/" & Year(dateObj) & " " & timeStr
     
     ' Parse combined date/time
     If Not IsDate(dateTimeStr) Then
-        OutputError "Invalid time format: " & timeStr
+        OutputError L("ERROR_INVALID_TIME_FORMAT") & timeStr
         WScript.Quit 1
     End If
     
-    ParseDateTime = CDate(dateTimeStr)
+    ParseDateTimeLocalized = CDate(dateTimeStr)
 End Function
 
 ' Creates a new calendar event with the specified properties
@@ -128,7 +134,7 @@ Function CreateCalendarEvent(subject, startDateTime, endDateTime, location, body
     End If
     
     If Err.Number <> 0 Then
-        OutputError "Failed to create calendar event: " & Err.Description
+        OutputError L("ERROR_CREATE_EVENT") & Err.Description
         WScript.Quit 1
     End If
     

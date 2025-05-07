@@ -27,22 +27,26 @@ export function defineOutlookTools() {
         properties: {
           startDate: {
             type: 'string',
-            description: 'Start date in MM/DD/YYYY format'
+            description: 'Start date in locale-appropriate format (MM/DD/YYYY for en, DD/MM/YYYY for es)'
           },
           endDate: {
             type: 'string',
-            description: 'End date in MM/DD/YYYY format (optional)'
+            description: 'End date in locale-appropriate format (optional)'
           },
           calendar: {
             type: 'string',
             description: 'Calendar name (optional)'
+          },
+          locale: {
+            type: 'string',
+            description: 'Language/locale code (e.g., "en", "es") - defaults to "en" (optional)'
           }
         },
         required: ['startDate']
       },
-      handler: async ({ startDate, endDate, calendar }) => {
+      handler: async ({ startDate, endDate, calendar, locale = "en" }) => {
         try {
-          const events = await listEvents(startDate, endDate, calendar);
+          const events = await listEvents(startDate, endDate, calendar, locale);
           return {
             content: [
               {
@@ -78,7 +82,7 @@ export function defineOutlookTools() {
           },
           startDate: {
             type: 'string',
-            description: 'Start date in MM/DD/YYYY format'
+            description: 'Start date in locale-appropriate format (MM/DD/YYYY for en, DD/MM/YYYY for es)'
           },
           startTime: {
             type: 'string',
@@ -86,7 +90,7 @@ export function defineOutlookTools() {
           },
           endDate: {
             type: 'string',
-            description: 'End date in MM/DD/YYYY format (optional, defaults to start date)'
+            description: 'End date in locale-appropriate format (optional, defaults to start date)'
           },
           endTime: {
             type: 'string',
@@ -111,13 +115,18 @@ export function defineOutlookTools() {
           calendar: {
             type: 'string',
             description: 'Calendar name (optional)'
+          },
+          locale: {
+            type: 'string',
+            description: 'Language/locale code (e.g., "en", "es") - defaults to "en" (optional)'
           }
         },
         required: ['subject', 'startDate', 'startTime']
       },
       handler: async (eventDetails) => {
         try {
-          const result = await createEvent(eventDetails);
+          const { locale = "en", ...details } = eventDetails;
+          const result = await createEvent(details, locale);
           return {
             content: [
               {
@@ -149,11 +158,11 @@ export function defineOutlookTools() {
         properties: {
           startDate: {
             type: 'string',
-            description: 'Start date in MM/DD/YYYY format'
+            description: 'Start date in locale-appropriate format (MM/DD/YYYY for en, DD/MM/YYYY for es)'
           },
           endDate: {
             type: 'string',
-            description: 'End date in MM/DD/YYYY format (optional, defaults to 7 days from start date)'
+            description: 'End date in locale-appropriate format (optional, defaults to 7 days from start date)'
           },
           duration: {
             type: 'number',
@@ -170,13 +179,17 @@ export function defineOutlookTools() {
           calendar: {
             type: 'string',
             description: 'Calendar name (optional)'
+          },
+          locale: {
+            type: 'string',
+            description: 'Language/locale code (e.g., "en", "es") - defaults to "en" (optional)'
           }
         },
         required: ['startDate']
       },
-      handler: async ({ startDate, endDate, duration, workDayStart, workDayEnd, calendar }) => {
+      handler: async ({ startDate, endDate, duration, workDayStart, workDayEnd, calendar, locale = "en" }) => {
         try {
-          const freeSlots = await findFreeSlots(startDate, endDate, duration, workDayStart, workDayEnd, calendar);
+          const freeSlots = await findFreeSlots(startDate, endDate, duration, workDayStart, workDayEnd, calendar, locale);
           return {
             content: [
               {
@@ -213,13 +226,17 @@ export function defineOutlookTools() {
           calendar: {
             type: 'string',
             description: 'Calendar name (optional)'
+          },
+          locale: {
+            type: 'string',
+            description: 'Language/locale code (e.g., "en", "es") - defaults to "en" (optional)'
           }
         },
         required: ['eventId']
       },
-      handler: async ({ eventId, calendar }) => {
+      handler: async ({ eventId, calendar, locale = "en" }) => {
         try {
-          const attendeeStatus = await getAttendeeStatus(eventId, calendar);
+          const attendeeStatus = await getAttendeeStatus(eventId, calendar, locale);
           return {
             content: [
               {
@@ -256,13 +273,17 @@ export function defineOutlookTools() {
           calendar: {
             type: 'string',
             description: 'Calendar name (optional)'
+          },
+          locale: {
+            type: 'string',
+            description: 'Language/locale code (e.g., "en", "es") - defaults to "en" (optional)'
           }
         },
         required: ['eventId']
       },
-      handler: async ({ eventId, calendar }) => {
+      handler: async ({ eventId, calendar, locale = "en" }) => {
         try {
-          const result = await deleteEvent(eventId, calendar);
+          const result = await deleteEvent(eventId, calendar, locale);
           return {
             content: [
               {
@@ -304,7 +325,7 @@ export function defineOutlookTools() {
           },
           startDate: {
             type: 'string',
-            description: 'New start date in MM/DD/YYYY format (optional)'
+            description: 'New start date in locale-appropriate format (MM/DD/YYYY for en, DD/MM/YYYY for es) (optional)'
           },
           startTime: {
             type: 'string',
@@ -312,7 +333,7 @@ export function defineOutlookTools() {
           },
           endDate: {
             type: 'string',
-            description: 'New end date in MM/DD/YYYY format (optional)'
+            description: 'New end date in locale-appropriate format (MM/DD/YYYY for en, DD/MM/YYYY for es) (optional)'
           },
           endTime: {
             type: 'string',
@@ -329,13 +350,17 @@ export function defineOutlookTools() {
           calendar: {
             type: 'string',
             description: 'Calendar name (optional)'
+          },
+          locale: {
+            type: 'string',
+            description: 'Language/locale code (e.g., "en", "es") - defaults to "en" (optional)'
           }
         },
         required: ['eventId']
       },
-      handler: async ({ eventId, subject, startDate, startTime, endDate, endTime, location, body, calendar }) => {
+      handler: async ({ eventId, subject, startDate, startTime, endDate, endTime, location, body, calendar, locale = "en" }) => {
         try {
-          const result = await updateEvent(eventId, subject, startDate, startTime, endDate, endTime, location, body, calendar);
+          const result = await updateEvent(eventId, subject, startDate, startTime, endDate, endTime, location, body, calendar, locale);
           return {
             content: [
               {
@@ -366,11 +391,16 @@ export function defineOutlookTools() {
       description: 'List available calendars',
       inputSchema: {
         type: 'object',
-        properties: {}
+        properties: {
+          locale: {
+            type: 'string',
+            description: 'Language/locale code (e.g., "en", "es") - defaults to "en" (optional)'
+          }
+        }
       },
-      handler: async () => {
+      handler: async ({ locale = "en" }) => {
         try {
-          const calendars = await getCalendars();
+          const calendars = await getCalendars(locale);
           return {
             content: [
               {
