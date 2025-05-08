@@ -15,12 +15,13 @@ Sub InitializeLocalization()
     g_defaultLocale = "en"
     
     ' Define supported locales
-    g_supportedLocales = Array("en", "es")
+    g_supportedLocales = Array("en", "es", "de")
     
     ' Create dictionary for date formats by locale
     Set g_dateFormatByLocale = CreateObject("Scripting.Dictionary")
     g_dateFormatByLocale.Add "en", "MM/DD/YYYY" ' English (US) format
     g_dateFormatByLocale.Add "es", "DD/MM/YYYY" ' Spanish format
+    g_dateFormatByLocale.Add "de", "DD.MM.YYYY" ' German format uses dots instead of slashes
     
     ' Create File System Object
     Set g_fso = CreateObject("Scripting.FileSystemObject")
@@ -121,8 +122,13 @@ Function ParseDateByLocale(dateStr, locale)
         Exit Function
     End If
     
-    ' Split the date string
-    parts = Split(dateStr, "/")
+    ' Split the date string based on locale
+    If locale = "de" Then
+        ' German uses dots as separators
+        parts = Split(dateStr, ".")
+    Else
+        parts = Split(dateStr, "/")
+    End If
     
     ' Make sure we have three parts
     If UBound(parts) <> 2 Then
@@ -174,6 +180,8 @@ Function FormatDateByLocale(dateObj, locale)
         FormatDateByLocale = Month(dateObj) & "/" & Day(dateObj) & "/" & Year(dateObj)
     ElseIf g_dateFormatByLocale(locale) = "DD/MM/YYYY" Then
         FormatDateByLocale = Day(dateObj) & "/" & Month(dateObj) & "/" & Year(dateObj)
+    ElseIf g_dateFormatByLocale(locale) = "DD.MM.YYYY" Then
+        FormatDateByLocale = Day(dateObj) & "." & Month(dateObj) & "." & Year(dateObj)
     Else
         ' Default MM/DD/YYYY
         FormatDateByLocale = Month(dateObj) & "/" & Day(dateObj) & "/" & Year(dateObj)

@@ -25,6 +25,7 @@ The Outlook Calendar MCP application supports multiple languages, allowing users
 Currently supported languages:
 - English (en) - Default
 - Spanish (es)
+- German (de)
 
 ## Architecture
 
@@ -48,6 +49,8 @@ locales/
   │   └── messages.vbs      # English strings
   ├── es/
   │   └── messages.vbs      # Spanish strings
+  ├── de/
+  │   └── messages.vbs      # German strings
   └── README.md             # This documentation
 ```
 
@@ -106,6 +109,7 @@ Different regions use different date formats. The localization system supports t
 |--------|--------|---------|
 | en     | MM/DD/YYYY | 05/07/2025 |
 | es     | DD/MM/YYYY | 07/05/2025 |
+| de     | DD.MM.YYYY | 07.05.2025 |
 
 ### Important Notes on Date Formatting
 
@@ -147,7 +151,7 @@ To add support for a new language:
 
    ```vbs
    ' Define supported locales
-   g_supportedLocales = Array("en", "es", "fr")  ' Add your new locale
+   g_supportedLocales = Array("en", "es", "de", "fr")  ' Add your new locale
    ```
 
 4. Add the date format for your locale:
@@ -157,6 +161,7 @@ To add support for a new language:
    Set g_dateFormatByLocale = CreateObject("Scripting.Dictionary")
    g_dateFormatByLocale.Add "en", "MM/DD/YYYY"
    g_dateFormatByLocale.Add "es", "DD/MM/YYYY"
+   g_dateFormatByLocale.Add "de", "DD.MM.YYYY"
    g_dateFormatByLocale.Add "fr", "DD/MM/YYYY"  ' Add your locale's format
    ```
 
