@@ -215,25 +215,34 @@ End Function
 ' Escapes a string for JSON
 Function EscapeJSON(str)
     Dim result
-    
+
     result = Replace(str, "\", "\\")
     result = Replace(result, """", "\""")
     result = Replace(result, vbCrLf, "\n")
     result = Replace(result, vbCr, "\n")
     result = Replace(result, vbLf, "\n")
     result = Replace(result, vbTab, "\t")
-    
+
     EscapeJSON = result
+End Function
+
+' Converts a VBScript boolean to a JSON boolean (always in English)
+Function BoolToJSON(boolValue)
+    If boolValue Then
+        BoolToJSON = "true"
+    Else
+        BoolToJSON = "false"
+    End If
 End Function
 
 ' Converts a VBScript array to a JSON array
 Function ArrayToJSON(arr)
     Dim i, result
-    
+
     result = "["
     For i = LBound(arr) To UBound(arr)
         If i > LBound(arr) Then result = result & ","
-        
+
         If IsNull(arr(i)) Then
             result = result & "null"
         ElseIf IsArray(arr(i)) Then
@@ -243,16 +252,12 @@ Function ArrayToJSON(arr)
         ElseIf VarType(arr(i)) = vbString Then
             result = result & """" & EscapeJSON(arr(i)) & """"
         ElseIf VarType(arr(i)) = vbBoolean Then
-            If arr(i) Then
-                result = result & "true"
-            Else
-                result = result & "false"
-            End If
+            result = result & BoolToJSON(arr(i))
         Else
             result = result & arr(i)
         End If
     Next
-    
+
     result = result & "]"
     ArrayToJSON = result
 End Function
@@ -276,10 +281,10 @@ Function AppointmentToJSON(appointment)
     json = json & """location"":""" & EscapeJSON(appointment.Location) & ""","
     json = json & """body"":""" & EscapeJSON(appointment.Body) & ""","
     json = json & """organizer"":""" & EscapeJSON(appointment.Organizer) & ""","
-    json = json & """isRecurring"":" & LCase(CStr(appointment.IsRecurring)) & ","
-    
+    json = json & """isRecurring"":" & BoolToJSON(appointment.IsRecurring) & ","
+
     ' Meeting status
-    json = json & """isMeeting"":" & LCase(CStr(appointment.MeetingStatus = olMeeting)) & ","
+    json = json & """isMeeting"":" & BoolToJSON(appointment.MeetingStatus = olMeeting) & ","
     
     ' Busy status
     Select Case appointment.BusyStatus
