@@ -214,8 +214,9 @@ End Function
 
 ' Escapes a string for JSON
 Function EscapeJSON(str)
-    Dim result
+    Dim result, i, charCode, hexStr
 
+    ' First do the standard replacements
     result = Replace(str, "\", "\\")
     result = Replace(result, """", "\""")
     result = Replace(result, vbCrLf, "\n")
@@ -223,7 +224,28 @@ Function EscapeJSON(str)
     result = Replace(result, vbLf, "\n")
     result = Replace(result, vbTab, "\t")
 
-    EscapeJSON = result
+    ' Now handle non-ASCII characters (code points > 127)
+    Dim finalResult, char
+    finalResult = ""
+
+    For i = 1 To Len(result)
+        char = Mid(result, i, 1)
+        charCode = AscW(char)
+
+        ' If it's a standard ASCII character (0-127), keep it as is
+        If charCode >= 0 And charCode <= 127 Then
+            finalResult = finalResult & char
+        Else
+            ' For non-ASCII characters, use Unicode escape sequence
+            ' Convert to hex and ensure it's 4 digits with leading zeros
+            hexStr = Hex(charCode)
+            ' Pad with leading zeros if needed to make it 4 digits
+            hexStr = String(4 - Len(hexStr), "0") & hexStr
+            finalResult = finalResult & "\u" & hexStr
+        End If
+    Next
+
+    EscapeJSON = finalResult
 End Function
 
 ' Converts a VBScript boolean to a JSON boolean (always in English)
