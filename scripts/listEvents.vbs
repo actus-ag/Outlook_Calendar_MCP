@@ -64,7 +64,12 @@ Function GetCalendarEvents(startDate, endDate, calendarName)
     
     ' Create filter for date range
     ' Format: "[Start] >= '2/2/2009 12:00 AM' AND [End] <= '2/3/2009 12:00 AM'"
-    filter = "[Start] >= '" & FormatDate(startDate) & " 12:00 AM' AND [End] <= '" & FormatDate(DateAdd("d", 1, endDate)) & " 12:00 AM'"
+    ' Note: Outlook always needs dates in US format (M/D/YYYY) regardless of locale
+    Dim filterStartDate, filterEndDate
+    filterStartDate = Month(startDate) & "/" & Day(startDate) & "/" & Year(startDate)
+    filterEndDate = Month(DateAdd("d", 1, endDate)) & "/" & Day(DateAdd("d", 1, endDate)) & "/" & Year(DateAdd("d", 1, endDate))
+
+    filter = "[Start] >= '" & filterStartDate & " 12:00 AM' AND [End] <= '" & filterEndDate & " 12:00 AM'"
     
     ' Get events matching the filter
     Set events = calendar.Items.Restrict(filter)
