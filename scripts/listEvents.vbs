@@ -62,43 +62,69 @@ Function GetCalendarEvents(startDate, endDate, calendarName)
         Set calendar = GetCalendarByName(outlookApp, calendarName)
     End If
     
-    ' Create filter for date range
-    ' Format: "[Start] >= '2/2/2009 12:00 AM' AND [End] <= '2/3/2009 12:00 AM'"
-    ' Note: The filter syntax is highly dependent on the Outlook version and regional settings
+    ' Instead of using Outlook's Restrict method which is unreliable across locales,
+    ' we'll get all events and filter them manually
 
-    ' Debug info
-    WScript.Echo "DEBUG: Start date (VBScript object): " & startDate
-    WScript.Echo "DEBUG: End date (VBScript object): " & endDate
+    ' Get all calendar items
+    Set events = calendar.Items
 
-    ' Try a different approach with explicit time components and ISO-like format
-    Dim filterStartDate, filterEndDate
-
-    ' Format: YYYY-MM-DD
-    filterStartDate = Year(startDate) & "-" & Right("0" & Month(startDate), 2) & "-" & Right("0" & Day(startDate), 2)
-    filterEndDate = Year(DateAdd("d", 1, endDate)) & "-" & Right("0" & Month(DateAdd("d", 1, endDate)), 2) & "-" & Right("0" & Day(DateAdd("d", 1, endDate)), 2)
-
-    ' Build filter with ISO-like format that should work regardless of locale
-    filter = "[Start] >= '" & filterStartDate & "T00:00:00' AND [End] <= '" & filterEndDate & "T00:00:00'"
-
-    WScript.Echo "DEBUG: Filter query: " & filter
-    
-    ' Get events matching the filter
-    Set events = calendar.Items.Restrict(filter)
-    
-    ' Sort by start date
+    ' Sort by start date for consistent order
     events.Sort "[Start]"
-    
+
+    ' Create a new collection for filtered events
+    Dim filteredEvents, item, itemStart, itemEnd
+    Set filteredEvents = CreateObject("Scripting.Dictionary")
+
+    ' The start of the day we're filtering from (at 00:00:00)
+    Dim dayStart, dayEnd
+    dayStart = DateSerial(Year(startDate), Month(startDate), Day(startDate))
+
+    ' End of the last day in range (at 23:59:59)
+    dayEnd = DateSerial(Year(endDate), Month(endDate), Day(endDate)) + 1 - (1/86400)
+
+    ' Loop through all events and keep those in our date range
+    For Each item In events
+        ' Cast dates to ensure proper comparison
+        itemStart = CDate(item.Start)
+        itemEnd = CDate(item.End)
+
+        ' Check if event overlaps with our date range
+        ' An event overlaps if:
+        ' 1. It starts within our range, OR
+        ' 2. It ends within our range, OR
+        ' 3. It starts before our range AND ends after our range (spans the range)
+        If (itemStart >= dayStart And itemStart <= dayEnd) Or _
+           (itemEnd >= dayStart And itemEnd <= dayEnd) Or _
+           (itemStart < dayStart And itemEnd > dayEnd) Then
+
+            ' Use EntryID as key to avoid duplicates
+            If Not filteredEvents.Exists(item.EntryID) Then
+                filteredEvents.Add item.EntryID, item
+            End If
+        End If
+    Next
+
+    ' Create a collection for the filtered events
+    Dim resultCollection, counter
+    Set resultCollection = CreateObject("System.Collections.ArrayList")
+
+    ' Add all filtered events to the collection
+    For Each item In filteredEvents.Items
+        resultCollection.Add(item)
+    Next
+
     If Err.Number <> 0 Then
         OutputError "Failed to get calendar events: " & Err.Description
         WScript.Quit 1
     End If
-    
-    ' Return events
-    Set GetCalendarEvents = events
-    
+
+    ' Return filtered events
+    Set GetCalendarEvents = resultCollection
+
     ' Clean up
     Set calendar = Nothing
     Set outlookApp = Nothing
+    Set filteredEvents = Nothing
 End Function
 
 ' Run the main function
