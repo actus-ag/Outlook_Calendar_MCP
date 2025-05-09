@@ -64,12 +64,23 @@ Function GetCalendarEvents(startDate, endDate, calendarName)
     
     ' Create filter for date range
     ' Format: "[Start] >= '2/2/2009 12:00 AM' AND [End] <= '2/3/2009 12:00 AM'"
-    ' Note: Outlook always needs dates in US format (M/D/YYYY) regardless of locale
-    Dim filterStartDate, filterEndDate
-    filterStartDate = Month(startDate) & "/" & Day(startDate) & "/" & Year(startDate)
-    filterEndDate = Month(DateAdd("d", 1, endDate)) & "/" & Day(DateAdd("d", 1, endDate)) & "/" & Year(DateAdd("d", 1, endDate))
+    ' Note: The filter syntax is highly dependent on the Outlook version and regional settings
 
-    filter = "[Start] >= '" & filterStartDate & " 12:00 AM' AND [End] <= '" & filterEndDate & " 12:00 AM'"
+    ' Debug info
+    WScript.Echo "DEBUG: Start date (VBScript object): " & startDate
+    WScript.Echo "DEBUG: End date (VBScript object): " & endDate
+
+    ' Try a different approach with explicit time components and ISO-like format
+    Dim filterStartDate, filterEndDate
+
+    ' Format: YYYY-MM-DD
+    filterStartDate = Year(startDate) & "-" & Right("0" & Month(startDate), 2) & "-" & Right("0" & Day(startDate), 2)
+    filterEndDate = Year(DateAdd("d", 1, endDate)) & "-" & Right("0" & Month(DateAdd("d", 1, endDate)), 2) & "-" & Right("0" & Day(DateAdd("d", 1, endDate)), 2)
+
+    ' Build filter with ISO-like format that should work regardless of locale
+    filter = "[Start] >= '" & filterStartDate & "T00:00:00' AND [End] <= '" & filterEndDate & "T00:00:00'"
+
+    WScript.Echo "DEBUG: Filter query: " & filter
     
     ' Get events matching the filter
     Set events = calendar.Items.Restrict(filter)
